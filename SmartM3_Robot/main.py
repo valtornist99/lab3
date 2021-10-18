@@ -13,8 +13,22 @@ hits = 0
 timer = 0
 timerStopped = True
 
+def StartTimer():
+    global timer
+    while True:
+        if not timerStopped:
+            time.sleep(1)
+            timer += 1
+timer_thread = Thread(target=StartTimer, args=())
+
 def findTarget(kp):
+    global curTarget
+    global timer_thread
     global timerStopped
+
+    if not timer_thread.is_alive():
+        timer_thread.start()
+
     timerStopped = True
     print("time: " + str(timer))
 
@@ -25,6 +39,7 @@ def findTarget(kp):
     else:
         kp.load_rdf_remove(Triple(URI("end_of_track_coordinate_" + robotID), URI("is"), None))
         kp.load_rdf_insert(Triple(URI("end_of_track_coordinate_" + robotID), URI("is"), Literal(targetCoordinates[curTarget])))
+    curTarget += 1
 
     timerStopped = False
 
@@ -38,7 +53,8 @@ def evaluateShot(kp):
     hit = random.randint(0, 1)
     hits += hit
 
-    # OK_message
+    kp.load_rdf_remove(Triple(URI("shot_" + robotID), URI("is"), URI("evaluated")))
+    kp.load_rdf_insert(Triple(URI("shot_" + robotID), URI("is"), URI("evaluated")))
 
     timerStopped = False
 
@@ -46,14 +62,14 @@ def end(kp):
     global timerStopped
     timerStopped = True
 
+    kp.load_rdf_remove(Triple(URI("hits_result_" + robotID), URI("is"), None))
+    kp.load_rdf_insert(Triple(URI("hits_result_" + robotID), URI("is"), Literal(hits)))
+
+    kp.load_rdf_remove(Triple(URI("time_result_" + robotID), URI("is"), None))
+    kp.load_rdf_insert(Triple(URI("time_result_" + robotID), URI("is"), Literal(timer)))
+
     print("Send result:" + str(hits) + ", " + str(timer))
 
-def StartTimer():
-    global timer
-    while True:
-        if not timerStopped:
-            time.sleep(1)
-            timer += 1
 
 class Target_Handler:
     def __init__(self, kp=None):
